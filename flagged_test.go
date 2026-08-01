@@ -12,12 +12,13 @@ func TestBind_notStructPointer(t *testing.T) {
 		wantErr error
 		name    string
 	}{
-		{struct {
+		{name: "struct value", wantErr: ErrNotStructPointer, target: struct {
 			X int `usage:"x"`
-		}{}, ErrNotStructPointer, "struct value"},
-		{(*struct{})(nil), ErrNotStructPointer, "nil pointer"},
-		{new(int), ErrNotStructPointer, "pointer to non-struct"},
-		{nil, ErrNotStructPointer, "nil interface"},
+		}{}},
+		{name: "nil pointer", wantErr: ErrNotStructPointer, target: (*struct{})(nil)},
+		{name: "pointer to non-struct", wantErr: ErrNotStructPointer, target: new(int)},
+		{name: "nil interface", wantErr: ErrNotStructPointer, target: nil},
+		{name: "pointer to pointer to struct", wantErr: ErrNotStructPointer, target: new(*struct{})},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
