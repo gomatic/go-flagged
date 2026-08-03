@@ -81,6 +81,23 @@ func TestBind_envOverride(t *testing.T) {
 	try.Equal("local", s.Host) // unset environment falls back to the value tag
 }
 
+// TestErrInvalidDefaultRejectsAnUnparseableEnvDefault names the env: half of
+// ErrInvalidDefault's claim, which resolveDefault feeds through the same
+// parse. It is the half that matters operationally: an environment variable
+// holding a malformed value must fail loudly, because falling back to the
+// value: tag would leave an operator convinced their override took effect.
+func TestErrInvalidDefaultRejectsAnUnparseableEnvDefault(t *testing.T) {
+	t.Setenv("FLAGGED_TEST_BAD_PORT", "not-a-number")
+	var s struct {
+		Port int `usage:"p" value:"8080" env:"FLAGGED_TEST_BAD_PORT"`
+	}
+
+	_, err := bindTo(t, &s)
+
+	require.ErrorIs(t, err, ErrInvalidDefault)
+	require.Equal(t, 0, s.Port, "a rejected default must not be bound")
+}
+
 func TestBind_untaggedFieldSkipped(t *testing.T) {
 	try := require.New(t)
 	var s struct {
@@ -124,7 +141,12 @@ type taggedHidden struct {
 	hidden int `usage:"x"`
 }
 
-func TestBind_unexportedTaggedField(t *testing.T) {
+// TestErrUnexportedFieldRejectsATaggedPrivateField names ErrUnexportedField's
+// claim. reflect cannot set an unexported field, so binding one would register
+// a flag whose value goes nowhere: the user passes -x and nothing happens.
+// Bind refuses instead. An unexported field WITHOUT a usage tag is not an
+// error — it is simply not a flag (TestBind_unexportedUntaggedSkipped).
+func TestErrUnexportedFieldRejectsATaggedPrivateField(t *testing.T) {
 	target := &taggedHidden{hidden: 1}
 	_ = target.hidden // read so the field is not reported unused
 	_, err := bindTo(t, target)

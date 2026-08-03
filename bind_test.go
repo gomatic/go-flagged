@@ -91,7 +91,12 @@ func TestBind_emptyDefaultKeepsCurrent(t *testing.T) {
 	try.Equal(time.Second, s.Dur)
 }
 
-func TestBind_invalidDefault(t *testing.T) {
+// TestErrInvalidDefaultRejectsAnUnparseableValueTag names ErrInvalidDefault's
+// claim for the value: tag half. A default that does not parse as the field's
+// type is a mistake in the struct definition; binding it as the zero value
+// instead would ship a program whose documented default silently is not the
+// default it advertises.
+func TestErrInvalidDefaultRejectsAnUnparseableValueTag(t *testing.T) {
 	tests := []struct {
 		target  any
 		wantErr error
